@@ -18,6 +18,11 @@ public class ZoneExtension extends SFSExtension {
 		
 		
 		
+	
+		
+		
+		
+		
 		try {
 			//初始化扩展及数据库连接
 			

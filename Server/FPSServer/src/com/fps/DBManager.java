@@ -1,6 +1,8 @@
 package com.fps;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -15,7 +17,12 @@ import com.fps.Global;
 import com.mysql.jdbc.ResultSetRow;
 import com.smartfoxserver.v2.api.SFSApi;
 import com.smartfoxserver.v2.db.IDBManager;
+import com.smartfoxserver.v2.entities.data.ISFSArray;
+import com.smartfoxserver.v2.entities.data.SFSArray;
+import com.smartfoxserver.v2.entities.data.SFSObject;
 import com.smartfoxserver.v2.extensions.ExtensionLogLevel;
+
+import scala.collection.generic.BitOperations.Int;
 
 
 public class DBManager {
@@ -26,14 +33,21 @@ public class DBManager {
 	public DBManager(IDBManager mgr) {
 		dbManager = mgr;
 		try {
-			conn = (Connection) dbManager.getConnection();
-			Global.print("初始化数据库成功! " + dbManager.getConfig().connectionString);
-			
-		} catch (SQLException e) {
+			Class.forName("com.mysql.jdbc.Driver");
+			conn=DriverManager.getConnection(dbManager.getConfig().connectionString,dbManager.getConfig().userName,dbManager.getConfig().password);
+			Global.print("初始化数据库成功! " +dbManager.getConfig().connectionString);
+			ExecuteSQL("update account set acc_pwd=?","jack1234");
+			Global.print("你好","123",345,33l);
+		} catch (Exception e) {
 			Global.print(ExtensionLogLevel.WARN, "初始化数据库失败"+dbManager.getConfig().connectionString+": " + e.toString());
 		}
 	}
 
+	/**
+	 * 执行SQL查询语句 
+	 * @param sql 查询SQL语句
+	 * @return 
+	 */
 	public List<HashMap> doQuery(String sql) {
 		try {
 			Statement stmt = conn.createStatement();
@@ -50,11 +64,47 @@ public class DBManager {
 		return null;
 	}
 	
-	public Boolean ExecuteSQL(String sql)
+	/**
+	 * 执行SQL语句
+	 * @param sql 需要执行的SQL语句，可以是Insert,Update，Delete
+	 * 参考:ExecuteSQL("update account set acc_pwd=?","1234");
+	 * @param items SQL语句中的参数
+	 * @return 此操作是否执行正确
+	 */
+	public Boolean ExecuteSQL(String sql,Object...items)
 	{
-		
-		return false;
+		 try {
+			PreparedStatement preStmt=conn.prepareStatement(sql);
+			int i=1;
+			for(Object item : items){  
+				String type=Global.getType(item);
+				switch(type) {
+				case "int":
+					 preStmt.setInt(i, (int)item);
+					break;
+				case "string":
+					preStmt.setString(i, (String)item);
+					break;
+				case "float":
+					preStmt.setFloat(i, (Float)item);
+					break;
+				case "dobule":
+					preStmt.setDouble(i, (Double)item);
+					break;
+				}
+				i++; 
+	        }  
+			preStmt.executeUpdate();
+			preStmt.close();
+			return true;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return false;
+		}  
 	}
+	
+	
 
 	private List convertList(ResultSet rs) throws SQLException {
 		List<HashMap>  list= new ArrayList();
@@ -85,5 +135,7 @@ public class DBManager {
 			Global.print(e.getMessage());
 		}
 	}
+	
+	
 }
 
